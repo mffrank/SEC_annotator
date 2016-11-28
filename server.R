@@ -17,7 +17,7 @@ if(ann_mode == "features"){
   features <- ProteinFeatures
   hyp_names <- unique(features$protein_name)
   
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.rda")
+  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
 
   # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
   # pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
@@ -31,7 +31,7 @@ if(ann_mode == "features"){
   # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
   # pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
   
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.rda")
+  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
   hyp_names <- unique(pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id)
   #   pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
   # ## NOTE: Traces were characters, need to be converted to numeric first!
@@ -154,7 +154,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$saveall, {
-    saveRDS(isolate(annotations$dt), file = paste0("data/Manual_annotation",Sys.Date(),"_",instance,".rda"))
+    saveRDS(isolate(annotations$dt), file = paste0("data/Manual_annotation",gsub("-","_",Sys.Date()),"_",instance,".rda"))
   })
   
   observeEvent(input$delete, {
@@ -163,6 +163,44 @@ server <- function(input, output, session) {
     }
   })
   
+  observeEvent(input$keypress[1],{
+    if(input$keypress[1] == "3"){
+      pos <- which(input$select == hyp_names)
+      if(pos != length(hyp_names)){
+        updateSelectInput(session, "select", selected = hyp_names[pos+1])
+        apex$sel <- NULL
+        apex$bound_right <- NULL
+        apex$bound_left <- NULL
+        ranges$x <- NULL
+      } 
+    } else if(input$keypress[1] == "2"){
+      if(!is.null(apex$sel) & !is.null(apex$bound_right)){
+        newLine <- isolate(data.table(FeatureName = input$select,
+                                      Apex = apex$sel,
+                                      leftBoundary = apex$bound_left,
+                                      rightBoundary = apex$bound_right,
+                                      Confidence = "Low"
+        ))
+        isolate(annotations$dt <- rbind(newLine,annotations$dt))
+        apex$sel <- NULL
+        apex$bound_right <- NULL
+        apex$bound_left <- NULL
+      }
+    } else if(input$keypress[1] == "1"){
+      if(!is.null(apex$sel) & !is.null(apex$bound_right)){
+        newLine <- isolate(data.table(FeatureName = input$select,
+                                      Apex = apex$sel,
+                                      leftBoundary = apex$bound_left,
+                                      rightBoundary = apex$bound_right,
+                                      Confidence = "High"))
+        isolate(annotations$dt <- rbind(newLine,annotations$dt))
+        apex$sel <- NULL
+        apex$bound_right <- NULL
+        apex$bound_left <- NULL
+      }
+      
+    }
+  })
   ## Observe the Mouse Events in Plots ---------------------------
   ###############################################################
   

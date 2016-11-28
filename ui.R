@@ -1,4 +1,15 @@
 
+
+jscode <- '
+$(function() {
+$(document).keypress(function(e) {
+if (e.key == "1" || e.key == "2" || e.key == "3" || e.key == "Q") {
+Shiny.onInputChange("keypress", [e.key, Math.random()]);
+}
+});
+});
+'
+
 #Load data
 ann_mode <- "all"
 
@@ -11,12 +22,13 @@ if(ann_mode == "features"){
   
 } else if(ann_mode == "all"){
   # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.rda")
-  hyp_names <- unique(pepTracses.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id)
+  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
+  hyp_names <- unique(pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id)
 }
 
 
 ui <- fluidPage(
+  tags$head(tags$script(HTML(jscode))),
   titlePanel("SEC-WATH MS Protein Viewer"),
   fluidRow(
     column(4,
