@@ -3,9 +3,8 @@
 jscode <- '
 $(function() {
 $(document).keypress(function(e) {
-if (e.key == "1" || e.key == "2" || e.key == "3" || e.key == "Q") {
 Shiny.onInputChange("keypress", [e.key, Math.random()]);
-}
+
 });
 });
 '

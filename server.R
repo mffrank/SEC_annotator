@@ -164,7 +164,7 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$keypress[1],{
-    if(input$keypress[1] == "3"){
+    if(input$keypress[1] == "3" |input$keypress[1] == "ArrowRight"){
       pos <- which(input$select == hyp_names)
       if(pos != length(hyp_names)){
         updateSelectInput(session, "select", selected = hyp_names[pos+1])
@@ -173,6 +173,15 @@ server <- function(input, output, session) {
         apex$bound_left <- NULL
         ranges$x <- NULL
       } 
+    } else if(input$keypress[1] == "ArrowLeft"){
+      pos <- which(input$select == hyp_names)
+      if(pos != 1){
+        updateSelectInput(session, "select", selected = hyp_names[pos-1])
+        apex$sel <- NULL
+        apex$bound_right <- NULL
+        apex$bound_left <- NULL
+        ranges$x <- NULL
+      }
     } else if(input$keypress[1] == "2"){
       if(!is.null(apex$sel) & !is.null(apex$bound_right)){
         newLine <- isolate(data.table(FeatureName = input$select,
@@ -200,6 +209,7 @@ server <- function(input, output, session) {
       }
       
     }
+    print(input$keypress)
   })
   ## Observe the Mouse Events in Plots ---------------------------
   ###############################################################
