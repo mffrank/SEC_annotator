@@ -4,9 +4,9 @@ library(reshape)
 library(plotly)
 library(DT)
 
-library(devtools)
-install_github("PedrioliLab/SECprofiler",ref="peakpicker")
-library('SECprofiler')
+# library(devtools)
+# install_github("PedrioliLab/SECprofiler",ref="peakpicker")
+# library('SECprofiler')
 
 # library(Cairo)   # For nicer ggplot2 output when deployed on Linux
 source("plot.Features.R")
@@ -29,8 +29,12 @@ if(traces$trace_type == "peptide"){
   }
   
 } else {
-  features <- filtered_corum_table
+  # features <- filtered_corum_table
+  features <- readRDS("data/corum_table_filtered_subset_current.rda")
+  # Filter out those proteins that have no trace
+  features <- subset(features, protein_id %in% traces$traces$id)
   hyp_names <- unique(features$complex_name)
+  
 }
 
 instance <- round(runif(1)*10^7,0)

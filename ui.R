@@ -1,8 +1,8 @@
 
-# To lazy load the complex hypotheses
-library(devtools)
-install_github("PedrioliLab/SECprofiler",ref="peakpicker")
-library('SECprofiler')
+# # To lazy load the complex hypotheses
+# library(devtools)
+# install_github("PedrioliLab/SECprofiler",ref="peakpicker")
+# library('SECprofiler')
 
 
 
@@ -33,7 +33,11 @@ if(traces$trace_type == "peptide"){
     hyp_names <- unique(traces$trace_annotation$protein_id)
   }
 } else {
-  features <- filtered_corum_table
+  # features <- filtered_corum_table
+  features <- readRDS("data/corum_table_filtered_subset_current.rda")
+  # Filter out those proteins that have no trace
+  features <- subset(features, protein_id %in% traces$traces$id)
+  
   hyp_names <- unique(features$complex_name)
 }
 
