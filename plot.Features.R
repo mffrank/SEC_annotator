@@ -47,6 +47,8 @@ plot.peptideFeatures.data <- function(res,
     return(res)
     
 }
+##################################---------------------------------------
+
 
 plot.complexFeatures <- function(plot.data,ranges = NULL,
                                  apex_man = NULL,

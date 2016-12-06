@@ -1,4 +1,10 @@
 
+# To lazy load the complex hypotheses
+library(devtools)
+install_github("PedrioliLab/SECprofiler",ref="peakpicker")
+library('SECprofiler')
+
+
 
 jscode <- '
 $(function() {
@@ -11,24 +17,29 @@ Shiny.onInputChange("keypress", [e.key, Math.random()]);
 
 #Load data
 ann_mode <- "all"
+# traces <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
+traces <- readRDS("data/protTraces_raw_a_cs3_spcf_fdr1pc_top2.rda")
 
-if(ann_mode == "features"){
-  # features <- readRDS("data/ProteinFeatures.tab.pcorr08.c05_subs.rds")
-  load("data/ProteinFeatures")
-  features <- ProteinFeatures
-  
-  hyp_names <- unique(features$protein_name)
-  
-} else if(ann_mode == "all"){
-  # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
-  hyp_names <- unique(pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id)
+if(traces$trace_type == "peptide"){
+  if(ann_mode == "features"){
+    # features <- readRDS("data/ProteinFeatures.tab.pcorr08.c05_subs.rds")
+    load("data/ProteinFeatures")
+    features <- ProteinFeatures
+    
+    hyp_names <- unique(features$protein_name)
+    
+  } else if(ann_mode == "all"){
+    # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
+    hyp_names <- unique(traces$trace_annotation$protein_id)
+  }
+} else {
+  features <- filtered_corum_table
+  hyp_names <- unique(features$complex_name)
 }
-
 
 ui <- fluidPage(
   tags$head(tags$script(HTML(jscode))),
-  titlePanel("SEC-WATH MS Protein Viewer"),
+  titlePanel("SEC-WATH MS Protein Annotator"),
   fluidRow(
     column(4,
       wellPanel(

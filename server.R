@@ -4,45 +4,38 @@ library(reshape)
 library(plotly)
 library(DT)
 
+library(devtools)
+install_github("PedrioliLab/SECprofiler",ref="peakpicker")
+library('SECprofiler')
+
 # library(Cairo)   # For nicer ggplot2 output when deployed on Linux
-source("plot.complexFeatures_peptides.R")
+source("plot.Features.R")
 source("tracesMethods.R")
 
 ann_mode<- "all"
+# traces <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
+traces <- readRDS("data/protTraces_raw_a_cs3_spcf_fdr1pc_top2.rda")
 
-if(ann_mode == "features"){
+if(traces$trace_type == "peptide"){
+  if(ann_mode == "features"){
+    # features <- readRDS("data/ProteinFeatures.tab.pcorr08.c05_subs.rds")
+    load("data/ProteinFeatures")
+    features <- ProteinFeatures
+    hyp_names <- unique(features$protein_name)
+  } else if(ann_mode == "all"){
+    # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
+    # traces <- pepTracses.annotated.consec3.SibPepCorr.filtered
+    hyp_names <- unique(traces$trace_annotation$protein_id)
+  }
   
-  # features <- readRDS("data/ProteinFeatures.tab.pcorr08.c05_subs.rds")
-  load("data/ProteinFeatures")
-  features <- ProteinFeatures
-  hyp_names <- unique(features$protein_name)
-  
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
-
-  # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
-  # pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
-  # ## NOTE: Traces were characters, need to be converted to numeric first!
-  # traces.numeric<- subset(pepTraces.annotated.consec3.SibPepCorr.filtered$traces, select=-id) 
-  # traces.numeric[, names(traces.numeric) := lapply(.SD, as.numeric)]
-  # # sapply(traces.numeric, class)
-  # pepTraces.annotated.consec3.SibPepCorr.filtered$traces <- data.table(traces.numeric,
-  #                                                                      id = pepTraces.annotated.consec3.SibPepCorr.filtered$traces$id)
-} else if(ann_mode == "all"){
-  # load("data/pepTracses.annotated.consec3.SibPepCorr.filtered")
-  # pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
-  
-  pepTraces.annotated.consec3.SibPepCorr.filtered <- readRDS("data/pepTracses.annotated.consec3.SibPepCorr.filtered.all.rda")
-  hyp_names <- unique(pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id)
-  #   pepTraces.annotated.consec3.SibPepCorr.filtered <- pepTracses.annotated.consec3.SibPepCorr.filtered
-  # ## NOTE: Traces were characters, need to be converted to numeric first!
-  # traces.numeric<- subset(pepTraces.annotated.consec3.SibPepCorr.filtered$traces, select=-id)
-  # traces.numeric[, names(traces.numeric) := lapply(.SD, as.numeric)]
-  # # sapply(traces.numeric, class)
-  # pepTraces.annotated.consec3.SibPepCorr.filtered$traces <- data.table(traces.numeric,
-  #                                                                      id = pepTraces.annotated.consec3.SibPepCorr.filtered$traces$id)
-
+} else {
+  features <- filtered_corum_table
+  hyp_names <- unique(features$complex_name)
 }
+
 instance <- round(runif(1)*10^7,0)
+
+
 
 server <- function(input, output, session) {
   annotations <- reactiveValues()
@@ -64,13 +57,19 @@ server <- function(input, output, session) {
     apex$sel <- NULL
     apex$bound_right <- NULL
     apex$bound_left <- NULL
-    if(ann_mode == "features"){
-      plot.complexFeatures.data(features,pepTraces.annotated.consec3.SibPepCorr.filtered,
-                                complexID)
-    } else if(ann_mode == "all"){
-      peptides <- pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$id[pepTraces.annotated.consec3.SibPepCorr.filtered$trace_annotation$protein_id == complexID]
-      pepTraces_sel <- subset(pepTraces.annotated.consec3.SibPepCorr.filtered,trace_ids=peptides)
-      toLongFormat(pepTraces_sel$traces)
+    if(traces$trace_type == "peptide"){
+      if(ann_mode == "features"){
+        plot.peptideFeatures.data(features,traces,
+                                  complexID)
+      } else if(ann_mode == "all"){
+        peptides <- traces$trace_annotation$id[traces$trace_annotation$protein_id == complexID]
+        pepTraces_sel <- subset(traces,trace_ids=peptides)
+        toLongFormat(pepTraces_sel$traces)
+      }
+    } else {
+      proteins <- features$protein_id[features$complex_name == complexID]
+      Traces_sel <- subset(traces,trace_ids = proteins)
+      toLongFormat(Traces_sel$traces)
     }
   })
   
@@ -96,16 +95,7 @@ server <- function(input, output, session) {
     }
   })
   
-  # When a double-click happens, check if there's a brush on the plot.
-  # If so, zoom to the brush bounds; if not, reset the zoom.
-  # observeEvent(input$zoom, {
-  #   brush <- input$plot2_brush
-  #   if (!is.null(brush)) {
-  #     ranges$x <- c(brush$xmin, brush$xmax)
-  #     # ranges$y <- c(brush$ymin, brush$ymax)
-  #   }
-  # })
-  
+
   observeEvent(input$save, {
     if(!is.null(apex$sel) & !is.null(apex$bound_right)){
       newLine <- isolate(data.table(FeatureName = input$select,
@@ -237,26 +227,24 @@ server <- function(input, output, session) {
       apex$bound_left <- round(input$plot1_brush$xmin,digits = 0)
       apex$bound_right <- round(input$plot1_brush$xmax,digits = 0)
   })
-  # apex_sel <- reactive(input$plot1_click$x)
-  
-  # output$firstPlot <- reactive({
-  #   # return(is.null(output$plot1))
-  #   TRUE
-  # })
-  
-  
+
   ## Output the Plots and Data table -------------------------
   ###############################################
   
   
   output$plot1 <- renderPlot({
     # print(apex_sel())
-    if(ann_mode == "features"){
-      p <- plot.complexFeatures(plot.data(),ranges,apex_man = apex, plot_peak = F, log = F,
-                                plot_monomer = F, plot_apex = F)
-    } else if(ann_mode == "all"){
-      p <- plot.traces(plot.data(),ranges,apex_man = apex, plot=FALSE, ledgend = FALSE)
-    } 
+    if(traces$trace_type == "peptide"){
+      if(ann_mode == "features"){
+        p <- plot.complexFeatures(plot.data(),ranges,apex_man = apex, plot_peak = F, log = F,
+                                  plot_monomer = F, plot_apex = F)
+      } else if(ann_mode == "all"){
+        p <- plot.traces(plot.data(),ranges,apex_man = apex, plot=FALSE, ledgend = FALSE)
+      } 
+    } else if (traces$trace_type == "protein"){
+      p <- plot.traces(plot.data(),ranges,apex_man = apex, plot=FALSE,
+                       ledgend = FALSE, trace_type = "Protein")
+    }
     p
   })
   
@@ -278,7 +266,7 @@ server <- function(input, output, session) {
   # output$click_info <- renderPrint({
   #   # Because it's a ggplot2, we don't need to supply xvar or yvar; if this
   #   # were a base graphics plot, we'd need those.
-  #   # nearPoints(pepTraces.annotated.consec3.SibPepCorr.filtered, input$plot1_click, addDist = TRUE)
+  #   # nearPoints(traces, input$plot1_click, addDist = TRUE)
   #   list(is.null(plot.data()),
   #        input$select,
   #        input$plot1_brush$xmin,
